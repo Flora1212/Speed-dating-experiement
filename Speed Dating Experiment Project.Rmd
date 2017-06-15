@@ -1,0 +1,445 @@
+
+
+# Speed Dating Experiment
+
+# Import data
+```{r}
+library(readr)
+Sdate <- read_csv("~/Speed Dating Data.csv")
+```
+
+# Examine the data
+```{r}
+str(Sdate)
+summary(Sdate$age)
+```
+# Select the dataset we are interested in
+```{r}
+which(names(Sdate)%in%c("dec", "attr","sinc","intel","fun","amb","shar","age","samerace","gender","imprelig","goal","date","go_out","exphappy","expnum"))
+Sdate1<-Sdate[,c(3,15,34,42,46:48,68,69,98:104)]
+
+```
+
+# Check the missing values
+```{r}
+library(Amelia)
+missmap(Sdate1,main = "Missing values vs observed")
+
+```
+
+
+# number of missing values in each column
+```{r}
+sapply(Sdate1,function(x) sum(is.na(x)))
+```
+# number of unique values in each column
+```{r}
+sapply(Sdate1, function(x) length(unique(x)))
+```
+# Taking care of the missing values
+A typical approach is to replace the missing values with the average, the median or the mode of the existing one. We use the average.
+We exclude "expnum" because there are too many missing values.
+```{r}
+which(colnames(Sdate1)=="expnum")
+Sdate11<-Sdate1[,-9]
+
+Sdate11$attr[is.na(Sdate11$attr)] <- median(Sdate11$attr,na.rm=T)
+Sdate11$sinc[is.na(Sdate11$sinc)] <- median(Sdate11$sinc,na.rm=T)
+Sdate11$intel[is.na(Sdate11$intel)] <- median(Sdate11$intel,na.rm=T)
+Sdate11$fun[is.na(Sdate11$fun)] <- median(Sdate11$fun,na.rm=T)
+Sdate11$amb[is.na(Sdate11$amb)] <- median(Sdate11$amb,na.rm=T)
+Sdate11$shar[is.na(Sdate11$shar)] <- median(Sdate11$shar,na.rm=T)
+
+Sdate11$imprelig[is.na(Sdate11$imprelig)] <- median(Sdate11$imprelig,na.rm=T)
+Sdate11$goal[is.na(Sdate11$goal)] <- median(Sdate11$goal,na.rm=T)
+Sdate11$date[is.na(Sdate11$date)] <- median(Sdate11$date,na.rm=T)
+Sdate11$go_out[is.na(Sdate11$go_out)] <- median(Sdate11$go_out,na.rm=T)
+Sdate11$exphappy[is.na(Sdate11$exphappy)] <- median(Sdate11$exphappy,na.rm=T)
+Sdate11$age[is.na(Sdate11$age)] <- median(Sdate11$age,na.rm=T)
+
+
+library(Amelia)
+missmap(Sdate11,main = "Missing values vs observed")
+
+```
+# Examining correlations among variables (paper doesn't include this)
+```{r}
+library(psych)
+pairs.panels(Sdate[c("attr","sinc","intel","fun","amb","shar","age","imprelig","goal","date","go_out","exphappy")])
+
+```
+
+
+# Design an logistic regression analysis
+We use dec as the response variable. Try attr(attractive), sinc(sincere), intel(Intelligent), fun (Fun),	amb(ambitious),	shar(shared interests/hobbies),gender, samerace, imprelig, goal, age, data, go_out, exhappy as the predictors.
+
+First, we split the dataset into training and testing dataset.
+```{r}
+set.seed(123)
+indx=sample(1:nrow(Sdate11), as.integer(0.9*nrow(Sdate11)))
+
+Sdate11_train = Sdate11[indx,]
+Sdate11_test = Sdate11[-indx,]
+
+which(colnames(Sdate11)=="dec")
+
+Sdate11_train_labels = Sdate11[indx,9]
+Sdate11_test_labels = Sdate11[-indx,9]   
+
+```
+We use 90% dataset as the training data and the left 10% as the testing data.
+
+
+# Using AIC method 
+# AIC method without interactions
+```{r}
+null=glm(dec~1, family=binomial(link="logit"),data=Sdate11_train)
+summary(null)
+full =glm(dec~., family=binomial(link="logit"), data= Sdate11_train)
+
+step(null, scope=list(lower=null, upper=full), direction="forward", data=Sdate11_train)
+summary(full)
+```
+
+# AIC method with two-way interactions
+```{r}
+null=glm(dec~1, family=binomial(link="logit"),data=Sdate11_train)
+summary(null)
+full =glm(dec~.^2, family=binomial(link="logit"), data= Sdate11_train)
+
+step(null, scope=list(lower=null, upper=full), direction="forward", data=Sdate11_train)
+summary(full)
+```
+
+*Based on the AIC method, We can see that the smallest AIC is 7604, with the formula (11 predictors, exclude samerace, age and goal): dec ~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + exphappy + intel.*
+
+*For the full model with 14 predictors, we can see that intel, samerace,goal, age and exphappy are insignificant predictors.*
+We will continue to do model selection.
+
+# Further Model selection
+(1)AIC-without interaction chosen model12 with 11 predictors
+Run logistic regression model
+```{r}
+model12<-glm(dec ~ attr + shar + fun + amb + gender + sinc + 
+    imprelig + go_out + date + goal+ intel, family = binomial(link = "logit"), data = Sdate11_train)
+summary(model12)
+```
+After dropping samerace, age and goal, We can see that the predictor "intel" has a large p-value of 0.136, so we drop it for further examination.
+
+
+(2)Next drop predictor"intel"
+```{r}
+model15<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + goal, family = binomial(link = "logit"), data = Sdate11_train)
+summary(model15)
+```
+We can see that predictor"goal" still has a relatively large p-value of 0.1152>0.05. We try to drop it.
+
+(3)Drop intel+goal
+```{r}
+model16<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date, family = binomial(link = "logit"), data = Sdate11_train)
+summary(model16)
+```
+Now all predictors are significant now.
+
+
+# Check accuracy of model16 on testing dataset
+## Model16
+## Confusion Matrix
+```{r}
+glm.pred <- predict(model16,newdata=Sdate11_test,type='response')
+glm.pred <- ifelse(glm.pred > 0.5,1,0)
+
+table(glm.pred,Sdate11_test$dec)
+misClasificError <- mean(glm.pred != Sdate11_test$dec)
+print(paste('Accuracy',1-misClasificError))
+```
+
+## Plot ROC and AUC
+```{r}
+library(ROCR)
+p <- predict(model16, newdata=Sdate11_test, type="response")
+pr <- prediction(p, Sdate11_test$dec)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+```
+
+# Add two-way interactions
+# Additive best model
+Model16: dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date
+
+# Add interactions based on AIC selection 
+Possible interactions:
+attr:gender + gender:sinc + fun:imprelig + fun:amb + imprelig:intel + gender:exphappy + intel:exphappy + shar:intel + sinc:go_out + gender:date + exphappy:go_out + fun:go_out + intel:date + shar:imprelig + amb:date + amb:go_out
+
+
+```{r}
+modelAIC<-glm(dec ~ attr + shar + fun + amb + gender + sinc + 
+    imprelig + intel + exphappy + go_out + date + attr:gender + 
+    gender:sinc + fun:imprelig + fun:amb + imprelig:intel + gender:exphappy + 
+    intel:exphappy + shar:intel + sinc:go_out + gender:date + 
+    exphappy:go_out + fun:go_out + intel:date + shar:imprelig + 
+    amb:date + amb:go_out, family = binomial(link = "logit"), data = Sdate11_train)
+summary(modelAIC)
+
+```
+# Drop the interactions that are insignificant, and interactions that include insignificannt main predictors, now we have 
+# attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out + amb:date 
+```{r}
+modelAIC1<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out + amb:date , family = binomial(link = "logit"), data = Sdate11_train)
+summary(modelAIC1)
+```
+# Drop amb:date
+```{r}
+modelAIC2<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out , family = binomial(link = "logit"), data = Sdate11_train)
+summary(modelAIC2)
+```
+# Drop fun:go_out
+```{r}
+modelAIC3<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date , family = binomial(link = "logit"), data = Sdate11_train)
+summary(modelAIC3)
+```
+# Check accuracy
+## Confusion Matrix
+```{r}
+glm.pred <- predict(modelAIC3,newdata=Sdate11_test,type='response')
+glm.pred <- ifelse(glm.pred > 0.5,1,0)
+
+table(glm.pred,Sdate11_test$dec)
+misClasificError <- mean(glm.pred != Sdate11_test$dec)
+print(paste('Accuracy',1-misClasificError))
+```
+
+## Plot ROC and AUC
+```{r}
+library(ROCR)
+p <- predict(modelAIC3, newdata=Sdate11_test, type="response")
+pr <- prediction(p, Sdate11_test$dec)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+```
+The prediction accuracy only increases by less than 1%, and AUC increases by less than 0.002. So we still choose the best performed additive model since it is more simple and easy to interpret, as well as a quite similar prediction accuracy with the much more complexed model with interactions.
+
+## Visual diagnostics
+# Residual plot
+```{r}
+plot(model16)
+```
+# Check for an outliers present in the data. 
+```{r}
+library(car)
+library(ggplot2)
+influencePlot(model16,id.n=2)
+```
+
+
+## Gender Differences
+# Split the data into male and female
+```{r}
+Sdate3<-subset(Sdate,gender==0)
+Sdate4<-subset(Sdate,gender==1)
+```
+
+```{r}
+which(colnames(Sdate)=="gender")
+```
+# Select the dataset we are interested in
+```{r}
+SdateF<-Sdate3[,c(3,15,34,42,46:48,68,98:104)]
+SdateM<-Sdate4[,c(3,15,34,42,46:48,68,98:104)]
+```
+
+# Check the missing values
+```{r}
+missmap(SdateF)
+missmap(SdateM)
+```
+
+# Taking care of the missing values
+```{r}
+SdateF$attr[is.na(SdateF$attr)] <- median(SdateF$attr,na.rm=T)
+SdateF$sinc[is.na(SdateF$sinc)] <- median(SdateF$sinc,na.rm=T)
+SdateF$intel[is.na(SdateF$intel)] <- median(SdateF$intel,na.rm=T)
+SdateF$fun[is.na(SdateF$fun)] <- median(SdateF$fun,na.rm=T)
+SdateF$amb[is.na(SdateF$amb)] <- median(SdateF$amb,na.rm=T)
+SdateF$shar[is.na(SdateF$shar)] <- median(SdateF$shar,na.rm=T)
+
+SdateF$imprelig[is.na(SdateF$imprelig)] <- median(SdateF$imprelig,na.rm=T)
+SdateF$goal[is.na(SdateF$goal)] <- median(SdateF$goal,na.rm=T)
+SdateF$date[is.na(SdateF$date)] <- median(SdateF$date,na.rm=T)
+SdateF$go_out[is.na(SdateF$go_out)] <- median(SdateF$go_out,na.rm=T)
+SdateF$exphappy[is.na(SdateF$exphappy)] <- median(SdateF$exphappy,na.rm=T)
+SdateF$age[is.na(SdateF$age)] <- median(SdateF$age,na.rm=T)
+
+SdateM$attr[is.na(SdateM$attr)] <- median(SdateM$attr,na.rm=T)
+SdateM$sinc[is.na(SdateM$sinc)] <- median(SdateM$sinc,na.rm=T)
+SdateM$intel[is.na(SdateM$intel)] <- median(SdateM$intel,na.rm=T)
+SdateM$fun[is.na(SdateM$fun)] <- median(SdateM$fun,na.rm=T)
+SdateM$amb[is.na(SdateM$amb)] <- median(SdateM$amb,na.rm=T)
+SdateM$shar[is.na(SdateM$shar)] <- median(SdateM$shar,na.rm=T)
+
+
+SdateM$imprelig[is.na(SdateM$imprelig)] <- median(SdateM$imprelig,na.rm=T)
+SdateM$goal[is.na(SdateM$goal)] <- median(SdateM$goal,na.rm=T)
+SdateM$date[is.na(SdateM$date)] <- median(SdateM$date,na.rm=T)
+SdateM$go_out[is.na(SdateM$go_out)] <- median(SdateM$go_out,na.rm=T)
+SdateM$exphappy[is.na(SdateM$exphappy)] <- median(SdateM$exphappy,na.rm=T)
+SdateM$age[is.na(SdateM$age)] <- median(SdateM$age,na.rm=T)
+
+
+library(Amelia)
+missmap(SdateF,main = "Missing values vs observed")
+missmap(SdateM,main = "Missing values vs observed")
+```
+# Fit the logistic regression value
+## Female
+```{r}
+#Fit the logistic regression model
+set.seed(123)
+indxF=sample(1:nrow(SdateF), as.integer(0.9*nrow(SdateF)))
+
+SdateF_train = SdateF[indxF,]
+SdateF_test = SdateF[-indxF,]
+
+SdateF_train_labels = SdateF[indxF,9]
+SdateF_test_labels = SdateF[-indxF,9] 
+
+SdataF_train_dec<-as.factor(SdateF_train$dec)
+summary(SdataF_train_dec)
+
+SdateF_lm<-glm(dec~attr + sinc + intel + fun + amb + shar + samerace + imprelig + goal + age + date + go_out + 
+    exphappy, family=binomial(link='logit'),data=SdateF_train)
+summary(SdateF_lm)
+
+#AIC method-without interactions
+nullF=glm(dec~1, family=binomial(link="logit"),data=SdateF_train)
+summary(nullF)
+fullF=glm(dec~attr+sinc+intel+fun+amb+shar+samerace+imprelig+goal+age+date+go_out+exphappy, family=binomial(link="logit"), data= SdateF_train)
+
+step(nullF, scope=list(lower=nullF, upper=fullF), direction="forward", data=SdateF_train)
+summary(full)
+
+#Based on AIC, we drop samerace, goal, age and date
+modelF12<-glm(dec~attr+sinc+intel+fun+amb+shar+imprelig+go_out+exphappy, family=binomial(link="logit"), data= SdateF_train)
+summary(modelF12)
+
+#drop go_out
+modelF13<-glm(dec~attr+sinc+intel+fun+amb+shar+imprelig+exphappy, family=binomial(link="logit"), data= SdateF_train)
+summary(modelF13)
+
+#further drop sinc
+modelF14<-glm(dec~attr+intel+fun+amb+shar+intel+imprelig+exphappy, family=binomial(link="logit"), data= SdateF_train)
+summary(modelF14)
+
+#drop intel
+modelF15<-glm(dec~attr+fun+amb+shar+imprelig+exphappy, family=binomial(link="logit"), data= SdateF_train)
+summary(modelF15)
+
+#Check accuracy of modelF14
+glm.pred <- predict(modelF15,newdata=SdateF_test,type='response')
+glm.pred <- ifelse(glm.pred > 0.5,1,0)
+
+table(glm.pred,SdateF_test$dec)
+misClasificError <- mean(glm.pred != SdateF_test$dec)
+print(paste('Accuracy',1-misClasificError))
+
+library(ROCR)
+pF <- predict(modelF15, newdata=SdateF_test, type="response")
+prF <- prediction(pF, SdateF_test$dec)
+prfF <- performance(prF, measure = "tpr", x.measure = "fpr")
+plot(prfF)
+
+auc <- performance(prF, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+
+
+```
+*What doesn't matter for female:samerace, goal, age, date, go_out, sinc*
+
+# Check for an outliers present in the femalw data. 
+```{r}
+library(car)
+library(ggplot2)
+influencePlot(modelF15,id.n=2)
+```
+
+## Male
+```{r}
+#split the trainning and testing dataset
+set.seed(123)
+indxM=sample(1:nrow(SdateM), as.integer(0.9*nrow(SdateM)))
+
+SdateM_train = SdateM[indxM,]
+SdateM_test = SdateM[-indxM,]
+
+SdateM_train_labels = SdateM[indxM,9]
+SdateM_test_labels = SdateM[-indxM,9]
+
+#Fit the logistic regression model
+#AIC method
+nullM=glm(dec~1, family=binomial(link="logit"),data=SdateM_train)
+fullM=glm(dec~attr+sinc+intel+fun+amb+shar+samerace+imprelig+goal+age+date+go_out+exphappy, family=binomial(link="logit"), data= SdateM_train)
+
+step(nullM, scope=list(lower=nullM, upper=fullM), direction="forward", data=SdateM_train)
+summary(fullM)
+
+
+#AIC method
+SdateM_lm<-glm(dec~attr + sinc + intel + fun + amb + shar + imprelig + date + go_out + exphappy, family=binomial(link='logit'),data=SdateM_train)
+summary(SdateM_lm)
+
+#Based on AIC, we drop samerace,intel
+modelM12<-glm(dec~attr+sinc+fun+amb+shar+imprelig+goal+age+date+go_out+exphappy, family=binomial(link="logit"), data= SdateM_train)
+summary(modelM12)
+
+#Drop age
+modelM13<-glm(dec~attr+sinc+fun+amb+shar+imprelig+goal+date+go_out+exphappy, family=binomial(link="logit"), data= SdateM_train)
+summary(modelM13)
+
+#Drop age+goal
+modelM15<-glm(dec~attr+sinc+fun+amb+shar+imprelig+date+go_out+exphappy, family=binomial(link="logit"), data= SdateM_train)
+summary(modelM15)
+
+#Add back intel to compare with females
+modelM14<-glm(dec~attr+sinc+fun+amb+shar+imprelig+date+go_out+exphappy+intel, family=binomial(link="logit"), data= SdateM_train)
+summary(modelM14)
+
+#check prediction accuracy
+glm.pred <- predict(modelM15,newdata=SdateM_test,type='response')
+glm.pred <- ifelse(glm.pred > 0.5,1,0)
+
+table(glm.pred,SdateM_test$dec)
+misClasificError <- mean(glm.pred != SdateM_test$dec)
+print(paste('Accuracy',1-misClasificError))
+
+library(ROCR)
+p <- predict(modelM15, newdata=SdateM_test, type="response")
+pr <- prediction(p, SdateM_test$dec)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+```
+*What doesn't matter for male: samerace, intelligence, age and goal*
+
+# Check for an outliers present in the male data. 
+```{r}
+library(car)
+library(ggplot2)
+influencePlot(modelM15,id.n=2)
+```
+
+
+
+
+
