@@ -28,11 +28,11 @@ missmap(Sdate1,main = "Missing values vs observed")
 ```
 
 
-# number of missing values in each column
+# Number of missing values in each column
 ```{r}
 sapply(Sdate1,function(x) sum(is.na(x)))
 ```
-# number of unique values in each column
+# Number of unique values in each column
 ```{r}
 sapply(Sdate1, function(x) length(unique(x)))
 ```
@@ -168,10 +168,10 @@ auc
 ```
 
 # Add two-way interactions
-# Additive best model
+(1) Additive best model
 Model16: dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date
 
-(1) Add interactions based on AIC selection 
+(2) Add interactions based on AIC selection 
 Possible interactions:
 attr:gender + gender:sinc + fun:imprelig + fun:amb + imprelig:intel + gender:exphappy + intel:exphappy + shar:intel + sinc:go_out + gender:date + exphappy:go_out + fun:go_out + intel:date + shar:imprelig + amb:date + amb:go_out
 
@@ -186,17 +186,17 @@ modelAIC<-glm(dec ~ attr + shar + fun + amb + gender + sinc +
 summary(modelAIC)
 
 ```
-(2) Drop the interactions that are insignificant, and interactions that include insignificannt main predictors, now we have attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out + amb:date 
+(3) Drop the interactions that are insignificant, and interactions that include insignificannt main predictors, now we have attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out + amb:date 
 ```{r}
 modelAIC1<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out + amb:date , family = binomial(link = "logit"), data = Sdate11_train)
 summary(modelAIC1)
 ```
-(3) Drop amb:date
+(4) Drop amb:date
 ```{r}
 modelAIC2<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date + fun:go_out , family = binomial(link = "logit"), data = Sdate11_train)
 summary(modelAIC2)
 ```
-(4) Drop fun:go_out
+(5) Drop fun:go_out
 ```{r}
 modelAIC3<-glm(dec~ attr + shar + fun + amb + gender + sinc + imprelig + go_out + date + attr:gender + gender:sinc + fun:imprelig + fun:amb  + gender:exphappy + sinc:go_out + gender:date , family = binomial(link = "logit"), data = Sdate11_train)
 summary(modelAIC3)
