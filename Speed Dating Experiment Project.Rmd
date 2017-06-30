@@ -226,12 +226,12 @@ auc
 ```
 The prediction accuracy only increases by less than 1%, and AUC increases by less than 0.002. So we still choose the best performed additive model since it is more simple and easy to interpret, as well as a quite similar prediction accuracy with the much more complexed model with interactions.
 
-## Visual diagnostics
-# Residual plot
+# Visual diagnostics
+## Residual plot
 ```{r}
 plot(model16)
 ```
-# Check for an outliers present in the data. 
+## Check for an outliers present in the data. 
 ```{r}
 library(car)
 library(ggplot2)
@@ -239,8 +239,8 @@ influencePlot(model16,id.n=2)
 ```
 
 
-## Gender Differences
-# Split the data into male and female
+# Gender Differences
+## Split the data into male and female
 ```{r}
 Sdate3<-subset(Sdate,gender==0)
 Sdate4<-subset(Sdate,gender==1)
@@ -249,19 +249,19 @@ Sdate4<-subset(Sdate,gender==1)
 ```{r}
 which(colnames(Sdate)=="gender")
 ```
-# Select the dataset we are interested in
+## Select the dataset we are interested in
 ```{r}
 SdateF<-Sdate3[,c(3,15,34,42,46:48,68,98:104)]
 SdateM<-Sdate4[,c(3,15,34,42,46:48,68,98:104)]
 ```
 
-# Check the missing values
+## Check the missing values
 ```{r}
 missmap(SdateF)
 missmap(SdateM)
 ```
 
-# Taking care of the missing values
+## Taking care of the missing values
 ```{r}
 SdateF$attr[is.na(SdateF$attr)] <- median(SdateF$attr,na.rm=T)
 SdateF$sinc[is.na(SdateF$sinc)] <- median(SdateF$sinc,na.rm=T)
@@ -298,7 +298,7 @@ missmap(SdateF,main = "Missing values vs observed")
 missmap(SdateM,main = "Missing values vs observed")
 ```
 # Fit the logistic regression value
-## Female
+# Female
 ```{r}
 #Fit the logistic regression model
 set.seed(123)
@@ -363,14 +363,14 @@ auc
 ```
 *What doesn't matter for female:samerace, goal, age, date, go_out, sinc*
 
-# Check for an outliers present in the femalw data. 
+## Check for an outliers present in the femalw data. 
 ```{r}
 library(car)
 library(ggplot2)
 influencePlot(modelF15,id.n=2)
 ```
 
-## Male
+# Male
 ```{r}
 #split the trainning and testing dataset
 set.seed(123)
@@ -431,7 +431,7 @@ auc
 ```
 *What doesn't matter for male: samerace, intelligence, age and goal*
 
-# Check for an outliers present in the male data. 
+## Check for an outliers present in the male data. 
 ```{r}
 library(car)
 library(ggplot2)
