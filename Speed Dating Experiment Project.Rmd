@@ -363,7 +363,7 @@ auc
 ```
 *What doesn't matter for female:samerace, goal, age, date, go_out, sinc*
 
-## Check for an outliers present in the femalw data. 
+## Check for outliers present in the femalw data. 
 ```{r}
 library(car)
 library(ggplot2)
@@ -431,7 +431,7 @@ auc
 ```
 *What doesn't matter for male: samerace, intelligence, age and goal*
 
-## Check for an outliers present in the male data. 
+## Check for outliers present in the male data. 
 ```{r}
 library(car)
 library(ggplot2)
