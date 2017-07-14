@@ -37,7 +37,7 @@ sapply(Sdate1,function(x) sum(is.na(x)))
 sapply(Sdate1, function(x) length(unique(x)))
 ```
 # Taking care of the missing values
-A typical approach is to replace the missing values with the average, the median or the mode of the existing one. We use the average.
+A typical approach is to replace the missing values with the average, the median or the mode of the existing one. We use the median.
 We exclude "expnum" because there are too many missing values.
 ```{r}
 which(colnames(Sdate1)=="expnum")
