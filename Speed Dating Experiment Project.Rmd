@@ -24,7 +24,6 @@ Sdate1<-Sdate[,c(3,15,34,42,46:48,68,69,98:104)]
 ```{r}
 library(Amelia)
 missmap(Sdate1,main = "Missing values vs observed")
-
 ```
 
 
